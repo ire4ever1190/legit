@@ -24,3 +24,4 @@ jobs:
         with:
           main-file: "src/legit.nim"
           deploy: "pages"
+          versions: "stable HEAD"

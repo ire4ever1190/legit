@@ -1,0 +1,26 @@
+on:
+  push:
+    branches:
+      - devel
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    permissions:
+      pages: write # To deploy to Pages
+      id-token: write # Verify deployment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: iffy/install-nim@v5
+        with:
+          version: stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Build documentation"
+        uses: ire4ever1190/nim-docs-action@v2
+        with:
+          main-file: "src/legit.nim"
+          deploy: "pages"

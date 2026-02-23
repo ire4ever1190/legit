@@ -85,19 +85,28 @@ macro validator*(obj: typedesc): proc =
   let
     body = newStmtList()
     params = nnkFormalParams.newTree(nnkBracketExpr.newTree(ident"Validator", obj))
-    prc = nnkProcDef.newTree(newEmptyNode(), newEmptyNode(), newEmptyNode(), params, newEmptyNode(), newEmptyNode(), body)
+    prc = nnkProcDef.newTree(
+      newEmptyNode(),
+      newEmptyNode(),
+      newEmptyNode(),
+      params,
+      newEmptyNode(),
+      newEmptyNode(),
+      body,
+    )
   for name, typ in fields:
     let paramIdent = nskParam.genSym(name)
-    params &= nnkIdentDefs.newTree(
-      paramIdent,
-      nnkBracketExpr.newTree(ident"seq", nnkBracketExpr.newTree(ident"Validator", typ)),
-      nnkPrefix.newTree(ident"@", nnkBracket.newTree())
-    )
+    params &=
+      nnkIdentDefs.newTree(
+        paramIdent,
+        nnkBracketExpr.newTree(
+          ident"seq", nnkBracketExpr.newTree(ident"Validator", typ)
+        ),
+        nnkPrefix.newTree(ident"@", nnkBracket.newTree()),
+      )
     tupleConstr &= nnkExprColonExpr.newTree(ident(name), paramIdent)
 
   body &= newCall(bindSym"objValidatorImpl", obj, tupleConstr)
-
-
 
   # Body of the proc will just pass the values as a tuple to `objValidatorImpl`
   return prc

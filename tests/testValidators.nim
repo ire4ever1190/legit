@@ -5,7 +5,7 @@
 #
 # To run these tests, simply execute `nimble test`.
 
-import unittest
+import std/[unittest, strutils]
 
 import legit
 
@@ -14,10 +14,16 @@ test "Min string length":
   check validator.valid("Hello")
   check not validator.valid("Hi")
 
+test "Can chain validators":
+  let validators = minLength(1).chain(minLength(2), minLength(3))
+  for i in 0 ..< 3:
+    check not validators.valid("a".repeat(i))
+  check validators.valid("Hello world")
+
 test "Object validation":
   type Person = object
     name: string
 
-  let validator = Person.validator()(name = minLength(5))
+  let validator = Person.validator()(name = @[minLength(5)])
 
   check validator.valid(Person(name: "Hello"))

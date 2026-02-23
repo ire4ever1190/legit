@@ -21,6 +21,17 @@ proc validator*[T](check: T -> bool, msg: string): Validator[T] =
   ## Validator wher `check` must hold true or `msg` is returned.
   return validator(check, x => msg)
 
+proc chain*[T](validators: varargs[Validator[T]]): Validator[T] =
+  ## Joins multiple validators together. Exits when the first validation fails
+  let validators = @validators
+  proc handler(value: T): Option[ValidationResult] =
+    for validator in validators:
+      let res = validator.validate(value)
+      if res.isSome():
+        return res
+
+  return Validator[T](validate: handler)
+
 proc minLength*(len: int): Validator[string] =
   ## Checks that a string is of minimum length
   runnableExamples:
@@ -32,14 +43,14 @@ proc minLength*(len: int): Validator[string] =
     x => x.len >= len, x => fmt"Length must be atleast {len}, got {x.len}"
   )
 
-proc objValidatorImpl*[T: object](obj: typedesc[T], fields: tuple): Validator[T] =
+proc objValidatorImpl[T: object](obj: typedesc[T], fields: tuple): Validator[T] =
   ## Implementation of the object validator which takes in a named tuple
   assert type(fields).isNamedTuple(), "Passed in tuple must contain named fields"
 
   proc validate(input: T): Option[ValidationResult] =
     var errors: ObjectValidation
 
-    for field, value in validator.fieldPairs:
+    for field, value in fields.fieldPairs:
       # Type check here so we don't get strange errors
       let validators: seq[Validator[grabField(obj, field)]] = value
 
@@ -52,7 +63,7 @@ proc objValidatorImpl*[T: object](obj: typedesc[T], fields: tuple): Validator[T]
     if errors.len > 0:
       return some(initValidationResult(errors))
 
-  return validate
+  return Validator[T](validate: validate)
 
 macro validator*(obj: typedesc): proc =
   ## Creates a validator object for an object. You can then construct this type
@@ -64,14 +75,31 @@ macro validator*(obj: typedesc): proc =
     Person.validator()(name = minLength(6))
     let valid = Person.validators((name: @[minLength(6)]))
   # Have mapping of every field and its type
-  var fields: Table[string, NimNode]
+  var fields = obj.getObjectDecl().get().extractFields()
 
-  echo obj.getObjectDecl().get().treeRepr
+  # For each parameter, we pass them into a named tuple
+  let tupleConstr = nnkTupleConstr.newTree()
 
   # Take that mapping, and generate a proc which all those fields as parameters
   # except mapped to Validator[T] and defaulting to `nil`
+  let
+    body = newStmtList()
+    params = nnkFormalParams.newTree(nnkBracketExpr.newTree(ident"Validator", obj))
+    prc = nnkProcDef.newTree(newEmptyNode(), newEmptyNode(), newEmptyNode(), params, newEmptyNode(), newEmptyNode(), body)
+  for name, typ in fields:
+    let paramIdent = nskParam.genSym(name)
+    params &= nnkIdentDefs.newTree(
+      paramIdent,
+      nnkBracketExpr.newTree(ident"seq", nnkBracketExpr.newTree(ident"Validator", typ)),
+      nnkPrefix.newTree(ident"@", nnkBracket.newTree())
+    )
+    tupleConstr &= nnkExprColonExpr.newTree(ident(name), paramIdent)
+
+  body &= newCall(bindSym"objValidatorImpl", obj, tupleConstr)
+
+
 
   # Body of the proc will just pass the values as a tuple to `objValidatorImpl`
-  return newLit(1)
+  return prc
 
 export base

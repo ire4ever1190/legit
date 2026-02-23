@@ -37,7 +37,7 @@ proc minLength*(len: int): Validator[string] =
   runnableExamples:
     let validator = minLength(5)
     assert validator.valid("Hello")
-    assert validator.valid("Hi")
+    assert not validator.valid("Hi")
 
   return validator[string](
     x => x.len >= len, x => fmt"Length must be atleast {len}, got {x.len}"
@@ -72,8 +72,12 @@ macro validator*(obj: typedesc): proc =
     type Person = object
       name: string
 
-    Person.validator()(name = minLength(6))
-    let valid = Person.validators((name: @[minLength(6)]))
+    # You creat ethe validator
+    let validator = Person.validator()(name = @[minLength(6)])
+
+    assert not validator.valid Person(name: "")
+    assert validator.valid Person(name: "John Smith")
+
   # Have mapping of every field and its type
   var fields = obj.getObjectDecl().get().extractFields()
 

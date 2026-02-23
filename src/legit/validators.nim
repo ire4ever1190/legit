@@ -11,7 +11,8 @@ proc validator*[T](check: T -> bool, msg: T -> string): Validator[T] =
   ## The message producer is given the invalid object to add more context
   runnableExamples:
     import std/[sugar, strformat]
-    let alwaysFoo = validator[string](val => val == "foo", val => fmt"Expected 'foo', got '{val}'")
+    let alwaysFoo =
+      validator[string](val => val == "foo", val => fmt"Expected 'foo', got '{val}'")
 
     assert alwaysFoo.valid("foo")
     assert not alwaysFoo.valid("bar")
@@ -47,14 +48,41 @@ proc chain*[T](validators: varargs[Validator[T]]): Validator[T] =
   return Validator[T](validate: handler)
 
 proc minLength*(len: int): Validator[string] =
-  ## Checks that a string is of minimum length
+  ## Checks that a string is at least of length `len`
   runnableExamples:
     let validator = minLength(5)
     assert validator.valid("Hello")
     assert not validator.valid("Hi")
 
   return validator[string](
-    x => x.len >= len, x => fmt"Length must be atleast {len}, got {x.len}"
+    x => x.len >= len, x => fmt"Length must be at least {len}, got {x.len}"
+  )
+
+proc maxLength*(len: int): Validator[string] =
+  ## Checks that a string is at most of length `len`
+  runnableExamples:
+    import std/strutils
+    let validator = maxLength(10)
+
+    assert validator.valid("a".repeat(10))
+    assert not validator.valid("a".repeat(11))
+
+  return validator[string](
+    x => x.len <= len, x => fmt"Length must be at most {len}, got {x.len}"
+  )
+
+proc lengthInRange*(rng: Slice[int]): Validator[string] =
+  ## Checks that a string has length within `rng`
+  runnableExamples:
+    import std/strutils
+    let validator = lengthInRange(3 .. 5)
+
+    assert not validator.valid("a".repeat(1)) # Below 3
+    assert validator.valid("a".repeat(4))
+    assert not validator.valid("a".repeat(6)) # Above 5
+
+  return validator[string](
+    x => x.len in rng, x => fmt"Length must be within {rng}, but got {x.len}"
   )
 
 proc inRange*[T](rng: Slice[T]): Validator[T] =

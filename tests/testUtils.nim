@@ -8,7 +8,7 @@ suite "Object field extraction":
   macro getFields(obj: typedesc): seq[(string, string)] =
     ## Returns list of fields
     var values: seq[(string, string)]
-    for field, typ in obj.getObjectDecl().get().extractFields():
+    for field, typ in obj.getObjectDecl().get().extractFields().pairs():
       values &= (field, $typ.toStrLit())
     return newLit values
 

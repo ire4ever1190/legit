@@ -43,6 +43,18 @@ proc minLength*(len: int): Validator[string] =
     x => x.len >= len, x => fmt"Length must be atleast {len}, got {x.len}"
   )
 
+proc inRange*[T](rng: Slice[T]): Validator[T] =
+  ## Checks that a number is within a certain range
+  runnableExamples:
+    let validator = inRange(1 .. 10)
+    assert validator.valid(5)
+    assert not validator.valid(0)
+
+  return validator[T](
+    n => n in rng,
+    n => fmt"{n} is not in the range {rng}"
+  )
+
 proc objValidatorImpl[T: object](obj: typedesc[T], fields: tuple): Validator[T] =
   ## Implementation of the object validator which takes in a named tuple
   assert type(fields).isNamedTuple(), "Passed in tuple must contain named fields"
@@ -103,6 +115,8 @@ macro validator*(obj: typedesc): proc =
     params &=
       nnkIdentDefs.newTree(
         paramIdent,
+        # We take in a list instead of a single validator (and making user use chain)
+        # so that we have a valid 0 value to handle empty fields
         nnkBracketExpr.newTree(
           ident"seq", nnkBracketExpr.newTree(ident"Validator", typ)
         ),

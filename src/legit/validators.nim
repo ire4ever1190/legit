@@ -131,13 +131,11 @@ proc objValidatorImpl[T: object](obj: typedesc[T], fields: tuple): Validator[T] 
 
     for field, value in fields.fieldPairs:
       # Type check here so we don't get strange errors
-      let validators: seq[Validator[grabField(obj, field)]] = value
+      let validator: Validator[grabField(obj, field)] = value
 
-      for validator in validators:
-        let res = validator.validate(grabField(input, field))
-        if res.isSome:
-          errors[field] = res.get()
-          break # We only want the first error to be returned
+      let res = validator.validate(grabField(input, field))
+      if res.isSome:
+        errors[field] = res.get()
 
     if errors.len > 0:
       return some(initValidationResult(errors))
@@ -189,7 +187,9 @@ macro validator*(obj: typedesc): proc =
         ),
         nnkPrefix.newTree(ident"@", nnkBracket.newTree()),
       )
-    tupleConstr &= nnkExprColonExpr.newTree(ident(name), paramIdent)
+
+    # We chain the validators so they become a single validator. Makes implementation simplier
+    tupleConstr &= nnkExprColonExpr.newTree(ident(name), newCall(bindSym"chain", paramIdent))
 
   body &= newCall(bindSym"objValidatorImpl", obj, tupleConstr)
 

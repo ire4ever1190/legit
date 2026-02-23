@@ -10,3 +10,14 @@ import unittest
 import legit
 
 test "Min string length":
+  let validator = minLength(5)
+  check validator.valid("Hello")
+  check not validator.valid("Hi")
+
+test "Object validation":
+  type Person = object
+    name: string
+
+  let validator = Person.validator()(name = minLength(5))
+
+  check validator.valid(Person(name: "Hello"))

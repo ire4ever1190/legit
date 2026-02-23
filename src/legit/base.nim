@@ -27,9 +27,13 @@ func initValidationResult*(msg: string): ValidationResult =
   ## Constructs a [BadValue] result
   return ValidationResult(kind: BadValue, msg: msg)
 
-func initValidationResult*(fields: Table[string, ValidationResult]): ValidationResult =
+func initValidationResult*(fields: ObjectValidation): ValidationResult =
   ## Constructs a [BadObject] result
   return ValidationResult(kind: BadObject, fields: fields)
+
+func initValidationResult*(items: ListValidation): ValidationResult =
+  ## Constructs a [BadList] result
+  return ValidationResult(kind: BadList, items: items)
 
 proc valid*[T](validator: Validator[T], value: T): bool =
   ## Checks if a value passed is valid

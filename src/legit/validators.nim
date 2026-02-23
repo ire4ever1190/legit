@@ -71,6 +71,34 @@ proc maxLength*(len: int): Validator[string] =
     x => x.len <= len, x => fmt"Length must be at most {len}, got {x.len}"
   )
 
+proc list*[T](validator: Validator[T]): Validator[openArray[T]] =
+  ## Takes a validator and turns it into one that can operate on a list of values.
+  ## Validator is ran on every item, and returns all the index's that failed validation (if any)
+  runnableExamples:
+    import std/[options, tables]
+
+    let validator = inRange(1..5).list()
+    let badItems = validator.validate(@[
+      4,
+      0,
+      6,
+      3
+    ]).get().items
+
+    assert 1 in badItems # 0 wasn't in range
+    assert 0 notin badItems # 3 was in range
+
+  proc handler(items: openArray[T]): Option[ValidationResult] =
+    var resItems: ListValidation
+    for i in 0 ..< items.len:
+      let res = validator.validate(items[i])
+      if res.isSome:
+        resItems[i] = res.get()
+    if resItems.len > 0:
+      return some initValidationResult(resItems)
+
+  return Validator[openArray[T]](validate: handler)
+
 proc lengthInRange*(rng: Slice[int]): Validator[string] =
   ## Checks that a string has length within `rng`
   runnableExamples:

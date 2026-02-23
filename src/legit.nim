@@ -27,7 +27,7 @@ runnableExamples:
   assert alwaysFoo.valid("foo")
   assert not alwaysFoo.valid("bar")
 
-## The library provides multiple built-in validators in [validators](validators.html) that can be chained together
+## The library provides multiple built-in validators in [validators](legit/validators.html) that can be chained together
 ## to form complex validators
 runnableExamples:
   import std/sugar

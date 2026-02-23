@@ -9,6 +9,13 @@ import pkg/libdump/macros
 proc validator*[T](check: T -> bool, msg: T -> string): Validator[T] =
   ## Validator where `check` must hold true or `msg` is produced.
   ## The message producer is given the invalid object to add more context
+  runnableExamples:
+    import std/[sugar, strformat]
+    let alwaysFoo = validator[string](val => val == "foo", val => fmt"Expected 'foo', got '{val}'")
+
+    assert alwaysFoo.valid("foo")
+    assert not alwaysFoo.valid("bar")
+
   proc handler(value: T): Option[ValidationResult] =
     if not check(value):
       some(initValidationResult(msg(value)))
@@ -19,6 +26,13 @@ proc validator*[T](check: T -> bool, msg: T -> string): Validator[T] =
 
 proc validator*[T](check: T -> bool, msg: string): Validator[T] =
   ## Validator wher `check` must hold true or `msg` is returned.
+  runnableExamples:
+    import std/sugar
+    let neverFoo = validator[string](x => x != "foo", "Value can't be 'foo'")
+
+    assert neverFoo.valid("bar")
+    assert not neverFoo.valid("foo")
+
   return validator(check, x => msg)
 
 proc chain*[T](validators: varargs[Validator[T]]): Validator[T] =

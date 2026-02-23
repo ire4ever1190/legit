@@ -50,10 +50,7 @@ proc inRange*[T](rng: Slice[T]): Validator[T] =
     assert validator.valid(5)
     assert not validator.valid(0)
 
-  return validator[T](
-    n => n in rng,
-    n => fmt"{n} is not in the range {rng}"
-  )
+  return validator[T](n => n in rng, n => fmt"{n} is not in the range {rng}")
 
 proc objValidatorImpl[T: object](obj: typedesc[T], fields: tuple): Validator[T] =
   ## Implementation of the object validator which takes in a named tuple
